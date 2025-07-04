@@ -115,6 +115,20 @@ PrivateData = @{
 
     } # End of PSData hashtable
 
+    ZeroFailed = @{
+        ExtensionDependencies = @(
+            @{
+                Name = "ZeroFailed.Build.DotNet"
+                GitRepository = "https://github.com/zerofailed/ZeroFailed.Build.DotNet"
+            }
+            @{
+                Name = "ZeroFailed.Build.GitHub"
+                GitRepository = "https://github.com/zerofailed/ZeroFailed.Build.GitHub"
+                GitRef = "feature/initial-version"
+            }
+        )
+    }
+
 } # End of PrivateData hashtable
 
 # HelpInfo URI of this module
