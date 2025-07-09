@@ -4,8 +4,9 @@
 
 # Synopsis: Checks whether the latest version of the ZeroFailed module is being used
 task CheckLatestZeroFailedVersion -If { !$SkipZeroFailedModuleVersionCheck } -After InitCore {
-    $currentVersion = (get-module ZeroFailed).Version
-    [version]$latestVersion = (Find-Module ZeroFailed -Repository PSGallery).Version
+    $currentVersion = (Get-Module ZeroFailed).Version
+    # Use basic retry logic to mitigate against transient issues with the PowerShell Gallery
+    [version]$latestVersion = Invoke-CommandWithRetry -Command { (Find-PSResource ZeroFailed -Type Module -Repository PSGallery).Version } -RetryCount 3 -RetryDelay 10
     if ($currentVersion -lt $latestVersion) {
         $msg = @"
 A newer ZeroFailed version is available: $latestVersion
@@ -31,7 +32,10 @@ task CheckPrAutoflowVersion -If { !$SkipPrAutoflowVersionCheck -and $script:repo
     $allWorkflowsUpToDate = $true
     foreach ($workflow in $workflowsToCheck) {
         $resp = $null
-        exec { & gh api "repos/$sourceRepo/contents/$sourceRepoPath/$workflow" } |
+        # Use basic retry logic to mitigate against transient issues
+        Invoke-CommandWithRetry -Command { exec { & gh api "repos/$sourceRepo/contents/$sourceRepoPath/$workflow" } } `
+                                -RetryCount 3 `
+                                -RetryDelay 10 |
             ConvertFrom-Json -Depth 100 |
             Tee-Object -Variable resp
         $latestWorkflow = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String(($resp).content))
@@ -60,7 +64,7 @@ task CheckPrAutoflowEnrollment -If { !$SkipPrAutoflowEnrollmentCheck } -After In
     # Ensure the YAML parsing module is installed
     if (!(Get-Module -ListAvailable powershell-yaml)) {
         Write-Host "Installing required module: powershell-yaml"
-        Install-Module powershell-yaml -Scope CurrentUser -Force -Repository PSGallery -RequiredVersion 0.4.12
+        Install-PSResource powershell-yaml -Scope CurrentUser -Force -Repository PSGallery -RequiredVersion 0.4.12
     }
 
     # Workaround for powershell-yaml bug whereby it overwrites the '$here' variable in the calling scope
@@ -75,14 +79,20 @@ task CheckPrAutoflowEnrollment -If { !$SkipPrAutoflowEnrollmentCheck } -After In
 
     $repoDetails = $null
     try {
-        exec { gh repo view --json owner,name } |
+        # Use basic retry logic to mitigate against transient failures
+        Invoke-CommandWithRetry -Command { exec { & gh repo view --json owner,name } } `
+                                -RetryCount 3 `
+                                -RetryDelay 10 |
             ConvertFrom-Json |
             Tee-Object -Variable repoDetails
         $orgName = $repoDetails.owner.login
         $repoName = $repoDetails.name
     
         $resp = $null
-        exec { & gh api "repos/$sourceRepo/contents/$sourceRepoPath/$orgName.yml" } |
+        # Use basic retry logic to mitigate against transient failures
+        Invoke-CommandWithRetry -Command { exec { & gh api "repos/$sourceRepo/contents/$sourceRepoPath/$orgName.yml" } } `
+                                -RetryCount 3 `
+                                -RetryDelay 10 |
             ConvertFrom-Json -Depth 100 |
             Tee-Object -Variable resp
         $config = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String(($resp).content))

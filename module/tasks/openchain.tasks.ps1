@@ -16,7 +16,7 @@ task PublishCovenantOutputToStorage `
         $filename = "{0}-{1}.json" -f [IO.Path]::GetFileNameWithoutExtension($covenantJsonOutputFilename),
                                      ([DateTime]::Now).ToString('yyyyMMddHHmmssfff')
 
-        Write-Information @"
+        Write-Build White @"
 Publishing storage account:
     Source File: $covenantJsonOutputFile
     Account: $AnalysisOutputStorageAccountName
@@ -28,17 +28,22 @@ Publishing storage account:
                         $AnalysisOutputBlobPath,
                         $filename
 
-        $authUri = & az storage blob generate-sas `
-                                --auth-mode login `
-                                --as-user `
-                                --https-only `
-                                --account-name $AnalysisOutputStorageAccountName `
-                                --blob-url $uri `
-                                --permissions c `
-                                --start (Get-Date).ToUniversalTime().ToString("yyyy-M-d'T'H:m'Z'") `
-                                --expiry (Get-Date).AddMinutes(10).ToUniversalTime().ToString("yyyy-M-d'T'H:m'Z'") `
-                                --full-uri `
-                                -o tsv
+        # Use basic retry logic to mitigate against transient failures
+        $authUri = Invoke-CommandWithRetry -RetryCount 3 `
+                                           -RetryDelay 10 `
+                                           -Command {
+                                                & az storage blob generate-sas `
+                                                    --auth-mode login `
+                                                    --as-user `
+                                                    --https-only `
+                                                    --account-name $AnalysisOutputStorageAccountName `
+                                                    --blob-url $uri `
+                                                    --permissions c `
+                                                    --start (Get-Date).ToUniversalTime().ToString("yyyy-M-d'T'H:m'Z'") `
+                                                    --expiry (Get-Date).AddMinutes(10).ToUniversalTime().ToString("yyyy-M-d'T'H:m'Z'") `
+                                                    --full-uri `
+                                                    -o tsv
+                                            }
         if ($LASTEXITCODE -ne 0) {
             Write-Warning "Unable to generate a storage SAS token for publishing SBOM - have you run 'az login'?"
         }
@@ -47,17 +52,22 @@ Publishing storage account:
                 "x-ms-date" = [System.DateTime]::UtcNow.ToString("R")
                 "x-ms-blob-type" = "BlockBlob"
             }
-            Invoke-RestMethod -Headers $headers `
-                      -Uri $authUri `
-                      -Method PUT `
-                      -InFile $covenantJsonOutputFile `
-                      -Verbose:$false | Out-Null
+            # Use basic retry logic to mitigate against transient failures
+            Invoke-CommandWithRetry -RetryCount 3 `
+                                    -RetryDelay 10 `
+                                    -Command {
+                                        Invoke-RestMethod -Headers $headers `
+                                                            -Uri $authUri `
+                                                            -Method PUT `
+                                                            -InFile $covenantJsonOutputFile `
+                                                            -Verbose:$false | Out-Null
+                                    }
     
-            Write-Information "Covenant JSON output published to storage account"
+            Write-Build Green "Covenant JSON output published to storage account"
         }
     }
     else {
-        Write-Information "Publishing of Covenant output skipped, due to absent configuration"
+        Write-Build White "Publishing of Covenant output skipped, due to absent configuration"
     }
 }
 
@@ -65,8 +75,11 @@ Publishing storage account:
 task RunSBOMAnalysis `
     -If { !$SkipBuildSolution -and $SolutionToBuild -and $env:SBOM_ANALYSIS_RELEASE_READER_PAT } `
     -Jobs EnsureGitHubCli,PublishCovenantOutputToStorage,{
-    if (!(Get-Module Az.Storage -ListAvailable)){
-        Install-Module Az.Storage -Scope CurrentUser -Repository PSGallery -Force -Verbose
+    if (!(Get-InstalledPSResource Az.Storage)){
+        # Use basic retry logic to mitigate against transient issues with the PowerShell Gallery
+        Invoke-CommandWithRetry -RetryCount 3 `
+                                -RetryDelay 10 `
+                                -Command { Install-PSResource Az.Storage -Scope CurrentUser -Repository PSGallery -Force -Verbose }
     }
     
     $AnalysisOutputContainerName = "data"
@@ -78,17 +91,23 @@ task RunSBOMAnalysis `
                         "license_rule_set.json"
     $isAuthenticated = $false
     try{
-        $authUri = exec {& az storage blob generate-sas `
-                                --auth-mode login `
-                                --as-user `
-                                --https-only `
-                                --account-name $AnalysisOutputStorageAccountName `
-                                --blob-url $uri `
-                                --permissions re `
-                                --start (Get-Date).ToUniversalTime().ToString("yyyy-M-d'T'H:m'Z'") `
-                                --expiry (Get-Date).AddMinutes(10).ToUniversalTime().ToString("yyyy-M-d'T'H:m'Z'") `
-                                --full-uri `
-                                -o tsv}
+        # Use basic retry logic to mitigate against transient failures
+        $authUri = Invoke-CommandWithRetry -RetryCount 3 `
+                                           -RetryDelay 10 `
+                                           -Command {
+                                                        exec { & az storage blob generate-sas `
+                                                                --auth-mode login `
+                                                                --as-user `
+                                                                --https-only `
+                                                                --account-name $AnalysisOutputStorageAccountName `
+                                                                --blob-url $uri `
+                                                                --permissions re `
+                                                                --start (Get-Date).ToUniversalTime().ToString("yyyy-M-d'T'H:m'Z'") `
+                                                                --expiry (Get-Date).AddMinutes(10).ToUniversalTime().ToString("yyyy-M-d'T'H:m'Z'") `
+                                                                --full-uri `
+                                                                -o tsv
+                                                        }
+                                                    }
         $isAuthenticated = $true
     }
     catch{
@@ -106,8 +125,10 @@ task RunSBOMAnalysis `
         $savedGhToken = $env:GH_TOKEN
         $env:GH_TOKEN = $env:SBOM_ANALYSIS_RELEASE_READER_PAT
         try {
-            # Find latest version released on GitHub
-            $latestVersion = exec { gh release list -R endjin/endjin-sbom-analyser --limit 1 } |
+            # Find latest version released on GitHub - use basic retry logic to mitigate against transient failures
+            $latestVersion = Invoke-CommandWithRetry -Command { exec { gh release list -R endjin/endjin-sbom-analyser --limit 1 } } `
+                                                     -RetryCount 3 `
+                                                     -RetryDelay 10 |
                 ConvertFrom-Csv -Header title,type,"tag name",published -Delimiter `t |
                 Select-Object -ExpandProperty "tag name"
         }
@@ -123,7 +144,10 @@ task RunSBOMAnalysis `
         $DownloadFileName = "sbom_analyser-$($latestVersion)-py3-none-any.whl"
         if(!(Test-Path (Join-Path $analysisFilesLocation $DownloadFileName))){
             Write-Host "Downloading latest release of SBOM Analyser, version" $latestVersion
-            exec { & gh release download -R "endjin/endjin-sbom-analyser" -p $DownloadFileName -D $analysisFilesLocation}
+            # Use basic retry logic to mitigate against transient failures
+            Invoke-CommandWithRetry -Command { exec { & gh release download -R "endjin/endjin-sbom-analyser" -p $DownloadFileName -D $analysisFilesLocation} } `
+                                    -RetryCount 3 `
+                                    -RetryDelay 10
         }
         
         exec {
