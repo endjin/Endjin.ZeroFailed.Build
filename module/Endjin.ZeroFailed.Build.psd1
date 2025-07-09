@@ -124,7 +124,6 @@ PrivateData = @{
             @{
                 Name = "ZeroFailed.Build.GitHub"
                 GitRepository = "https://github.com/zerofailed/ZeroFailed.Build.GitHub"
-                GitRef = "feature/initial-version"
             }
         )
     }
