@@ -2,6 +2,8 @@
 # Copyright (c) Endjin Limited. All rights reserved.
 # </copyright>
 
+. $PSScriptRoot/codeops.properties.ps1
+
 # Synopsis: Checks whether the latest version of the ZeroFailed module is being used
 task CheckLatestZeroFailedVersion -If { !$SkipZeroFailedModuleVersionCheck } -After InitCore {
     $currentVersion = (Get-Module ZeroFailed).Version

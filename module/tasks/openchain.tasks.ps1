@@ -2,6 +2,8 @@
 # Copyright (c) Endjin Limited. All rights reserved.
 # </copyright>
 
+. $PSScriptRoot/openchain.properties.ps1
+
 # Synopsis: Stores the raw generated SBOM in an Azure storage account
 task PublishCovenantOutputToStorage `
     -If { !$SkipBuildSolution -and $SolutionToBuild -and $PublishCovenantOutputToStorage } `
@@ -74,6 +76,7 @@ Publishing storage account:
 # Synopsis: Generates CSV files containing summarised SBOM details for the current build
 task RunSBOMAnalysis `
     -If { !$SkipBuildSolution -and $SolutionToBuild -and $env:SBOM_ANALYSIS_RELEASE_READER_PAT } `
+    -After RunCovenant `
     -Jobs EnsureGitHubCli,PublishCovenantOutputToStorage,{
     if (!(Get-InstalledPSResource Az.Storage)){
         # Use basic retry logic to mitigate against transient issues with the PowerShell Gallery
