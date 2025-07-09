@@ -117,6 +117,12 @@ PrivateData = @{
 
     ZeroFailed = @{
         ExtensionDependencies = @(
+            # Temporary explicit reference to test pre-release version
+            @{
+                Name = "ZeroFailed.DevOps.Common"
+                GitRepository = "https://github.com/zerofailed/ZeroFailed.DevOps.Common"
+                GitRef = "feature/add-retry-support"
+            }
             @{
                 Name = "ZeroFailed.Build.DotNet"
                 GitRepository = "https://github.com/zerofailed/ZeroFailed.Build.DotNet"
