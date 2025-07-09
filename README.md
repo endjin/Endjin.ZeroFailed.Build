@@ -7,7 +7,7 @@
 
 A [ZeroFailed](https://github.com/zerofailed/ZeroFailed) extension containing Endjin-specific build features as well acting as a 'meta' extension to bring in other standard dependencies.
 
-## Features Overview
+## Overview
 
 | Component Type | Included | Notes               |
 |----------------|----------|---------------------|

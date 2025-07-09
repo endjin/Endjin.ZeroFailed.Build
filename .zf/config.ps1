@@ -28,7 +28,6 @@ $PowerShellModulesToPublish = @(
 )
 $CreateGitHubRelease = $true
 
-
 # Customise the build process
 task . FullBuild
 
