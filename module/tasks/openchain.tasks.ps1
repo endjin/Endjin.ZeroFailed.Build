@@ -74,7 +74,7 @@ Publishing storage account:
 
 # Synopsis: Generates CSV files containing summarised SBOM details and verifies that it references no disallowed license types
 task RunSBOMAnalysis `
-    -If { !$SkipBuildSolution -and $SolutionToBuild -and !$SkipSbomAnalysis } `
+    -If { !$SkipBuildSolution -and $SolutionToBuild -and !$SkipSbomAnalysis -and $env:SBOM_ANALYSIS_RELEASE_READER_PAT } `
     -After RunCovenant `
     -Jobs EnsureGitHubCli,PublishCovenantOutputToStorage,{
 
@@ -104,7 +104,7 @@ task RunSBOMAnalysis `
         if(!(Test-Path $analysisFilesLocation)){
             New-Item -ItemType Directory $analysisFilesLocation | Out-Null
         }
-        Get-AzStorageBlobContent -Destination "$($analysisFilesLocation)/" -AbsoluteUri $authUri -Force | Format-List | Out-String | Write-Host
+        Get-AzStorageBlobContent -Destination "$($analysisFilesLocation)/" -AbsoluteUri $authUri -Force | Format-List | Out-String | Write-Verbose
 
         # Switch to a PAT that gives read access to the repo hosting the analysis tool
         $savedGhToken = $env:GH_TOKEN
