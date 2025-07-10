@@ -109,30 +109,30 @@ task RunSBOMAnalysis `
         # Switch to a PAT that gives read access to the repo hosting the analysis tool
         $savedGhToken = $env:GH_TOKEN
         $env:GH_TOKEN = $env:SBOM_ANALYSIS_RELEASE_READER_PAT
+        $sbomAnalyserRepo = "endjin/endjin-sbom-analyser"
         try {
             # Find latest version released on GitHub - use basic retry logic to mitigate against transient failures
-            $latestVersion = Invoke-CommandWithRetry -Command { exec { gh release list -R endjin/endjin-sbom-analyser --limit 1 } } `
+            $latestVersion = Invoke-CommandWithRetry -Command { exec { gh release list -R $sbomAnalyserRepo --limit 1 } } `
                                                      -RetryCount 3 `
                                                      -RetryDelay 10 |
                 ConvertFrom-Csv -Header title,type,"tag name",published -Delimiter `t |
                 Select-Object -ExpandProperty "tag name"
+        
+            if (!$latestVersion) {
+                throw "Unable to determine the latest version of the Python tool"
+            }
+
+            $downloadFileName = "sbom_analyser-$($latestVersion)-py3-none-any.whl"
+            if (!(Test-Path (Join-Path $analysisFilesLocation $downloadFileName))){
+                Write-Build Green "Downloading latest release of SBOM Analyser: $latestVersion"
+                # Use basic retry logic to mitigate against transient failures
+                Invoke-CommandWithRetry -Command { exec { & gh release download -R $sbomAnalyserRepo $latestVersion -p $downloadFileName -D $analysisFilesLocation } } `
+                                        -RetryCount 3 `
+                                        -RetryDelay 10
+            }
         }
         finally {
             $env:GH_TOKEN = $savedGhToken
-        }
-        
-        if (!$latestVersion) {
-            throw "Unable to determine the latest version of the Python tool"
-        }
-        Write-Host $latestVersion
-
-        $downloadFileName = "sbom_analyser-$($latestVersion)-py3-none-any.whl"
-        if(!(Test-Path (Join-Path $analysisFilesLocation $downloadFileName))){
-            Write-Host "Downloading latest release of SBOM Analyser: $latestVersion"
-            # Use basic retry logic to mitigate against transient failures
-            Invoke-CommandWithRetry -Command { exec { & gh release download -R "endjin/endjin-sbom-analyser" $latestVersion -p $downloadFileName -D $analysisFilesLocation } } `
-                                    -RetryCount 3 `
-                                    -RetryDelay 10
         }
         
         exec {
@@ -141,20 +141,18 @@ task RunSBOMAnalysis `
         }
         $sbomPath = $covenantJsonOutputFile
         Write-Build White "Processing SBOM: $sbomPath"
-        $jsonPath = Get-ChildItem -path "$($analysisFilesLocation)/openchain/license_rules/*.json"
-        Write-Build White "jsonPath: $jsonPath"
+        $jsonPath = Get-ChildItem -path "$analysisFilesLocation/openchain/license_rules/*.json"
+        Write-Verbose "jsonPath: $jsonPath"
         
         Set-Location $analysisFilesLocation
-        exec{
-            & generate_sbom_score $sbomPath $jsonPath
-        }
+        exec { & generate_sbom_score $sbomPath $jsonPath }
         $summarisedContent = Get-Content 'sbom_analysis_summarised_scores.csv' | ConvertFrom-Csv
 
-        if ($summarisedContent.Unknown -gt 0){ 
+        if ($summarisedContent.Unknown -gt 0) { 
             Write-Warning (Write-SBOMComponents -fileName 'sbom_analysis_unknown_components.csv' -sum $summarisedContent.Unknown -type 'unknown')
         }
-        if ($summarisedContent.Rejected -gt 0){
-            throw Write-SBOMComponents -fileName 'sbom_analysis_rejected_components.csv' -sum $summarisedContent.Rejected -type 'rejected'
+        if ($summarisedContent.Rejected -gt 0) {
+            throw (Write-SBOMComponents -fileName 'sbom_analysis_rejected_components.csv' -sum $summarisedContent.Rejected -type 'rejected')
         }
     }
 }
