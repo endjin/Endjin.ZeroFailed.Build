@@ -128,9 +128,9 @@ task RunSBOMAnalysis `
 
         $downloadFileName = "sbom_analyser-$($latestVersion)-py3-none-any.whl"
         if(!(Test-Path (Join-Path $analysisFilesLocation $downloadFileName))){
-            Write-Host "Downloading latest release of SBOM Analyser, version" $latestVersion
+            Write-Host "Downloading latest release of SBOM Analyser: $latestVersion"
             # Use basic retry logic to mitigate against transient failures
-            Invoke-CommandWithRetry -Command { exec { & gh release download -R "endjin/endjin-sbom-analyser" -p $downloadFileName -D $analysisFilesLocation} } `
+            Invoke-CommandWithRetry -Command { exec { & gh release download -R "endjin/endjin-sbom-analyser" $latestVersion -p $downloadFileName -D $analysisFilesLocation } } `
                                     -RetryCount 3 `
                                     -RetryDelay 10
         }
