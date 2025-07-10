@@ -13,3 +13,6 @@ $AnalysisOutputContainerName = property ZF_BUILD_OPENCHAIN_OUTPUT_STORAGE_CONTAI
 
 # Synopsis: The Azure storage blob path used to store the Covenant SBOM
 $AnalysisOutputBlobPath = property ZF_BUILD_OPENCHAIN_OUTPUT_STORAGE_BLOB_PATH ""
+
+# Synopsis: When true, the licensing policy SBOM analysis step will be skipped
+$SkipSbomAnalysis = [Convert]::ToBoolean((property ZF_BUILD_OPENCHAIN_SKIP_SBOM_ANALYSIS $false))

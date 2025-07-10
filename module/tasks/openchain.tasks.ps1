@@ -72,9 +72,9 @@ Publishing storage account:
     }
 }
 
-# Synopsis: Generates CSV files containing summarised SBOM details for the current build
+# Synopsis: Generates CSV files containing summarised SBOM details and verifies that it references no disallowed license types
 task RunSBOMAnalysis `
-    -If { !$SkipBuildSolution -and $SolutionToBuild -and $env:SBOM_ANALYSIS_RELEASE_READER_PAT } `
+    -If { !$SkipBuildSolution -and $SolutionToBuild -and !$SkipSbomAnalysis } `
     -After RunCovenant `
     -Jobs EnsureGitHubCli,PublishCovenantOutputToStorage,{
 
