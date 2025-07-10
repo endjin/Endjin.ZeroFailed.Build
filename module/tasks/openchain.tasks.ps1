@@ -12,7 +12,8 @@ task PublishCovenantOutputToStorage `
     if ( (Test-Path $covenantJsonOutputFile) -and `
             $AnalysisOutputStorageAccountName -and `
             $AnalysisOutputContainerName -and `
-            $AnalysisOutputBlobPath) {
+            $AnalysisOutputBlobPath -and `
+            (Test-AzCliConnection) ) {
     
         $covenantJsonOutputFilename = (Split-Path -Leaf $covenantJsonOutputFile)
         $filename = "{0}-{1}.json" -f [IO.Path]::GetFileNameWithoutExtension($covenantJsonOutputFilename),
@@ -47,7 +48,7 @@ Publishing storage account:
                                                     -o tsv
                                             }
         if ($LASTEXITCODE -ne 0) {
-            Write-Warning "Unable to generate a storage SAS token for publishing SBOM - have you run 'az login'?"
+            Write-Warning "Unable to generate a storage SAS token for publishing SBOM - check errors above."
         }
         else {
             $headers = @{
@@ -69,7 +70,7 @@ Publishing storage account:
         }
     }
     else {
-        Write-Build White "Publishing of Covenant output skipped, due to absent configuration"
+        Write-Build White "Publishing of Covenant output skipped, due to absent configuration or lack of azure-cli credentials."
     }
 }
 
