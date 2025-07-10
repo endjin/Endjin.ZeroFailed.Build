@@ -14,6 +14,14 @@ task PublishCovenantOutputToStorage `
             $AnalysisOutputContainerName -and `
             $AnalysisOutputBlobPath ) {
     
+        if (!(Get-InstalledPSResource Az.Storage)){
+            Write-Build White "Installing Az.Storage module..."
+            # Use basic retry logic to mitigate against transient issues with the PowerShell Gallery
+            Invoke-CommandWithRetry -RetryCount 3 `
+                                    -RetryDelay 10 `
+                                    -Command { Install-PSResource Az.Storage -Scope CurrentUser -Repository PSGallery -Force -Verbose }
+        }
+        
         $covenantJsonOutputFilename = (Split-Path -Leaf $covenantJsonOutputFile)
         $filename = "{0}-{1}.json" -f [IO.Path]::GetFileNameWithoutExtension($covenantJsonOutputFilename),
                                      ([DateTime]::Now).ToString('yyyyMMddHHmmssfff')
@@ -70,6 +78,14 @@ task RunSBOMAnalysis `
     -After RunCovenant `
     -Jobs EnsureGitHubCli,PublishCovenantOutputToStorage,{
     
+    if (!(Get-InstalledPSResource Az.Storage)){
+        Write-Build White "Installing Az.Storage module..."
+        # Use basic retry logic to mitigate against transient issues with the PowerShell Gallery
+        Invoke-CommandWithRetry -RetryCount 3 `
+                                -RetryDelay 10 `
+                                -Command { Install-PSResource Az.Storage -Scope CurrentUser -Repository PSGallery -Force -Verbose }
+    }
+
     # 1. Download JSON ruleset 
     $isAuthenticated = $false
     try{
@@ -96,7 +112,7 @@ task RunSBOMAnalysis `
         if(!(Test-Path $analysisFilesLocation)){
             New-Item -ItemType Directory $analysisFilesLocation | Out-Null
         }
-        Get-AzStorageBlobContent -Destination "$($analysisFilesLocation)/" -AbsoluteUri $authUri -Force | Format-List 
+        Get-AzStorageBlobContent -Destination "$($analysisFilesLocation)/" -AbsoluteUri $authUri -Force | Format-List | Out-String | Write-Host
 
         # Switch to a PAT that gives read access to the repo hosting the analysis tool
         $savedGhToken = $env:GH_TOKEN
