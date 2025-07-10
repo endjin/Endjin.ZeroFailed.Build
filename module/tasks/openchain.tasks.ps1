@@ -19,7 +19,7 @@ task PublishCovenantOutputToStorage `
             # Use basic retry logic to mitigate against transient issues with the PowerShell Gallery
             Invoke-CommandWithRetry -RetryCount 3 `
                                     -RetryDelay 10 `
-                                    -Command { Install-PSResource Az.Storage -Scope CurrentUser -Repository PSGallery -Force -Verbose }
+                                    -Command { Install-PSResource Az.Storage -Scope CurrentUser -Repository PSGallery }
         }
         
         $covenantJsonOutputFilename = (Split-Path -Leaf $covenantJsonOutputFile)
@@ -83,7 +83,7 @@ task RunSBOMAnalysis `
         # Use basic retry logic to mitigate against transient issues with the PowerShell Gallery
         Invoke-CommandWithRetry -RetryCount 3 `
                                 -RetryDelay 10 `
-                                -Command { Install-PSResource Az.Storage -Scope CurrentUser -Repository PSGallery -Force -Verbose }
+                                -Command { Install-PSResource Az.Storage -Scope CurrentUser -Repository PSGallery }
     }
 
     # 1. Download JSON ruleset 
