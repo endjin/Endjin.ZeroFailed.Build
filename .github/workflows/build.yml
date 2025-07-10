@@ -41,7 +41,6 @@ jobs:
           {}
         secretsYaml: |
           ZF_BUILD_PS_REPOSITORY_APIKEY: ${{ secrets.PSGALLERY_APIKEY }}
-          SBOM_ANALYSIS_RELEASE_READER_PAT: ${{ secrets.ENDJIN_GITHUB_READER_PAT }}
         secretsEncryptionKey: ${{ secrets.SHARED_WORKFLOW_KEY }}
 
     - uses: endjin/Endjin.RecommendedPractices.GitHubActions/actions/run-build-process@main
