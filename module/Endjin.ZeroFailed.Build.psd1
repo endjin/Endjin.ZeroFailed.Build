@@ -120,6 +120,7 @@ PrivateData = @{
             @{
                 Name = "ZeroFailed.Build.DotNet"
                 GitRepository = "https://github.com/zerofailed/ZeroFailed.Build.DotNet"
+                GitRef = "feature/fix-covenant-metadata"
             }
             @{
                 Name = "ZeroFailed.Build.GitHub"
