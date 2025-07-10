@@ -14,7 +14,7 @@ task PublishCovenantOutputToStorage `
             $AnalysisOutputContainerName -and `
             $AnalysisOutputBlobPath ) {
     
-        if (!(Get-InstalledPSResource Az.Storage)){
+        if (!(Get-Module -ListAvailable Az.Storage)){
             Write-Build White "Installing Az.Storage module..."
             # Use basic retry logic to mitigate against transient issues with the PowerShell Gallery
             Invoke-CommandWithRetry -RetryCount 3 `
@@ -78,7 +78,7 @@ task RunSBOMAnalysis `
     -After RunCovenant `
     -Jobs EnsureGitHubCli,PublishCovenantOutputToStorage,{
     
-    if (!(Get-InstalledPSResource Az.Storage)){
+    if (!(Get-Module -ListAvailable Az.Storage)){
         Write-Build White "Installing Az.Storage module..."
         # Use basic retry logic to mitigate against transient issues with the PowerShell Gallery
         Invoke-CommandWithRetry -RetryCount 3 `
