@@ -19,7 +19,7 @@ task PublishCovenantOutputToStorage `
             # Use basic retry logic to mitigate against transient issues with the PowerShell Gallery
             Invoke-CommandWithRetry -RetryCount 3 `
                                     -RetryDelay 10 `
-                                    -Command { Install-PSResource Az.Storage -Scope CurrentUser -Repository PSGallery }
+                                    -Command { Install-PSResource Az.Storage -Scope CurrentUser -Repository PSGallery -TrustRepository }
         }
         
         $covenantJsonOutputFilename = (Split-Path -Leaf $covenantJsonOutputFile)
@@ -77,14 +77,6 @@ task RunSBOMAnalysis `
     -If { !$SkipBuildSolution -and $SolutionToBuild -and $env:SBOM_ANALYSIS_RELEASE_READER_PAT } `
     -After RunCovenant `
     -Jobs EnsureGitHubCli,PublishCovenantOutputToStorage,{
-    
-    if (!(Get-Module -ListAvailable Az.Storage)){
-        Write-Build White "Installing Az.Storage module..."
-        # Use basic retry logic to mitigate against transient issues with the PowerShell Gallery
-        Invoke-CommandWithRetry -RetryCount 3 `
-                                -RetryDelay 10 `
-                                -Command { Install-PSResource Az.Storage -Scope CurrentUser -Repository PSGallery }
-    }
 
     # 1. Download JSON ruleset 
     $isAuthenticated = $false
