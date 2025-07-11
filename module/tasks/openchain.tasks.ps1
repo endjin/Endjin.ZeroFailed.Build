@@ -149,10 +149,10 @@ task RunSBOMAnalysis `
         $summarisedContent = Get-Content 'sbom_analysis_summarised_scores.csv' | ConvertFrom-Csv
 
         if ($summarisedContent.Unknown -gt 0) { 
-            Write-Warning (Write-SBOMComponents -fileName 'sbom_analysis_unknown_components.csv' -sum $summarisedContent.Unknown -type 'unknown')
+            Write-Warning (_generateSbomLicenseViolationLogMessage -fileName 'sbom_analysis_unknown_components.csv' -sum $summarisedContent.Unknown -type 'unknown')
         }
         if ($summarisedContent.Rejected -gt 0) {
-            throw (Write-SBOMComponents -fileName 'sbom_analysis_rejected_components.csv' -sum $summarisedContent.Rejected -type 'rejected')
+            throw (_generateSbomLicenseViolationLogMessage -fileName 'sbom_analysis_rejected_components.csv' -sum $summarisedContent.Rejected -type 'rejected')
         }
     }
 }
