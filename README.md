@@ -28,3 +28,33 @@ This extension consists of the following feature groups, click the links to see 
 |--------------------------|----------------|---------|
 | [ZeroFailed.Build.DotNet](https://github.com/zerofailed/ZeroFailed.Build.DotNet) | git            | `main`  |
 | [ZeroFailed.Build.GitHub](https://github.com/zerofailed/ZeroFailed.Build.GitHub) | git            | `main`  |
+
+## Getting Started
+
+If you are starting something new and don't yet have a ZeroFailed process setup, then follow the steps here to bootstrap your new project.
+
+Once you have the above setup (or it you already have that), then simply add the following to your list of required extensions (e.g. in `config.ps1`):
+
+```powershell
+$zerofailedExtensions = @(
+    ...
+    # References the extension from its GitHub repository. If not already installed, use latest version from 'main' will be downloaded.
+    @{
+        Name = "Endjin.ZeroFailed.Build"
+        GitRepository = "https://github.com/endjin/Endjin.ZeroFailed.Build"
+        GitRef = "main"     # replace this with a Git Tag or SHA reference if want to pin to a specific version
+    }
+
+    # Alternatively, reference the extension from the PowerShell Gallery.
+    @{
+        Name = "Endjin.ZeroFailed.Build"
+        Version = ""   # if no version is specified, the latest stable release will be used
+    }
+)
+```
+
+## Usage
+
+For an example of using this extension to build a .NET project, please take a look at [this sample repo](https://github.com/endjin/Endjin.ZeroFailed.Sample.DotNet).
+
+TODO: Python-based sample
